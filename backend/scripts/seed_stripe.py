@@ -12,7 +12,7 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 PRODUCTS = [
     {
-        "name": "SaaS Starter",
+        "name": "Stripewise Starter",
         "description": "Starter access to the SaaS project",
         "tier": "starter",
         "lookup_key": "saas_starter",
@@ -20,7 +20,7 @@ PRODUCTS = [
         "currency": "inr",
     },
     {
-        "name": "SaaS Pro",
+        "name": "Stripewise Pro",
         "description": "Complete access to the SaaS project",
         "tier": "pro",
         "lookup_key": "saas_pro",
