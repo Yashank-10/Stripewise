@@ -24,6 +24,10 @@ class User(db.Model):
         unique=True,
         nullable=False
     )
+    password_hash = db.Column(
+        db.String(255),
+        nullable=False
+    )
 
     email_verified = db.Column(
         db.Boolean,
