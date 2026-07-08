@@ -6,6 +6,8 @@ from app.extensions import db, migrate, jwt
 from app.products.routes import products_bp
 from app.auth.routes import auth_bp
 
+from  app.payments.routes import payments_bp
+
 def create_app():
     app = Flask(__name__)
 
@@ -30,5 +32,8 @@ def create_app():
         auth_bp,
         url_prefix="/api/auth"
     )
-
+    app.register_blueprint(
+        payments_bp,
+        url_prefix="/api/payments"
+    )
     return app
