@@ -9,6 +9,14 @@ from app.payments.services import (
     create_checkout_session,
 )
 
+import stripe
+
+from flask import (
+    Blueprint,
+    current_app,
+    request,
+)
+
 payments_bp = Blueprint(
     "payments",
     __name__,
@@ -56,3 +64,44 @@ def checkout():
         return {
             "error": str(e)
         }, 400
+
+@payments_bp.route(
+    "/webhook",
+    methods=["POST"],
+)
+def stripe_webhook():
+    payload = request.get_data()
+
+    signature = request.headers.get(
+        "Stripe-Signature"
+    )
+
+    webhook_secret = current_app.config[
+        "STRIPE_WEBHOOK_SECRET"
+    ]
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=signature,
+            secret=webhook_secret,
+        )
+
+    except ValueError:
+        return {
+            "error": "Invalid webhook payload"
+        }, 400
+
+    except stripe.SignatureVerificationError:
+        return {
+            "error": "Invalid webhook signature"
+        }, 400
+
+    print(
+        "Stripe event received:",
+        event["type"]
+    )
+
+    return {
+        "received": True
+    }, 200
