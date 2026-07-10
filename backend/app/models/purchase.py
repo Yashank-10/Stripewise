@@ -48,6 +48,12 @@ class Purchase(db.Model):
         default="completed",
     )
 
+    access_status = db.Column(
+        db.String(50),
+        nullable=False,
+        default="pending",
+    )
+
     created_at = db.Column(
         db.DateTime,
         nullable=False,

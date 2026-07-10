@@ -11,6 +11,7 @@ from flask_jwt_extended import (
 )
 
 from app.payments.services import (
+    claim_purchase,
     create_checkout_session,
     handle_checkout_completed,
 )
@@ -58,9 +59,8 @@ def checkout():
         )
 
         return {
-            "checkout_url": (
-                checkout_session.url
-            )
+            "checkout_url": checkout_session.url,
+            "session_id": checkout_session.id,
         }, 200
 
     except ValueError as error:
@@ -75,6 +75,62 @@ def checkout():
             )
         }, 502
 
+@payments_bp.route(
+    "/claim",
+    methods=["POST"],
+)
+@jwt_required()
+def claim():
+    data = request.get_json() or {}
+
+    checkout_session_id = data.get(
+        "session_id"
+    )
+
+    if not checkout_session_id:
+        return {
+            "error": "Session ID is required"
+        }, 400
+
+    user_id = get_jwt_identity()
+
+    purchase, error = claim_purchase(
+        user_id=user_id,
+        checkout_session_id=(
+            checkout_session_id
+        ),
+    )
+
+    if error == "Purchase not found":
+        return {
+            "error": error
+        }, 404
+
+    if error == (
+        "Purchase does not belong to user"
+    ):
+        return {
+            "error": "Purchase access denied"
+        }, 403
+
+    if error:
+        return {
+            "error": error
+        }, 409
+
+    return {
+        "message": "Purchase found",
+        "purchase": {
+            "id": purchase.id,
+            "tier": purchase.tier,
+            "amount": purchase.amount,
+            "currency": purchase.currency,
+            "status": purchase.status,
+            "access_status": (
+                purchase.access_status
+            ),
+        }
+    }, 200
 
 @payments_bp.route(
     "/webhook",

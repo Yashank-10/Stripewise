@@ -85,10 +85,10 @@ def handle_checkout_completed(session):
     if existing_purchase:
         return existing_purchase, False
 
-    metadata = session.get("metadata") or {}
+    metadata = session["metadata"]
 
-    user_id = metadata.get("user_id")
-    tier = metadata.get("tier")
+    user_id = metadata["user_id"]
+    tier = metadata["tier"]
 
     if not user_id:
         raise ValueError(
@@ -115,13 +115,9 @@ def handle_checkout_completed(session):
             "User not found"
         )
 
-    amount_total = session.get(
-        "amount_total"
-    )
+    amount_total = session["amount_total"]
 
-    currency = session.get(
-        "currency"
-    )
+    currency = session["currency"]
 
     if amount_total is None:
         raise ValueError(
@@ -164,3 +160,19 @@ def handle_checkout_completed(session):
         raise
 
     return purchase, True
+
+def claim_purchase(user_id, checkout_session_id):
+    purchase = Purchase.query.filter_by(
+        checkout_session_id=checkout_session_id
+    ).first()
+
+    if not purchase:
+        return None, "Purchase not found"
+
+    if purchase.user_id != user_id:
+        return None, "Purchase does not belong to user"
+
+    if purchase.status != "completed":
+        return None, "Payment is not completed"
+
+    return purchase, None 
