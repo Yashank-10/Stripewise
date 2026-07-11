@@ -7,7 +7,7 @@ from app.extensions import db
 from app.models.purchase import Purchase
 from app.models.user import User
 from app.payments.constants import TIER_LOOKUP_KEYS
-
+from app.payments.provisioning import provision_purchase
 
 def initialize_stripe():
     stripe.api_key = current_app.config[
@@ -83,6 +83,10 @@ def handle_checkout_completed(session):
     ).first()
 
     if existing_purchase:
+        provision_purchase(
+            existing_purchase
+        )
+
         return existing_purchase, False
 
     metadata = session["metadata"]
@@ -155,9 +159,15 @@ def handle_checkout_completed(session):
         )
 
         if existing_purchase:
+            provision_purchase(
+                existing_purchase
+            )
+
             return existing_purchase, False
 
         raise
+
+    provision_purchase(purchase)
 
     return purchase, True
 
