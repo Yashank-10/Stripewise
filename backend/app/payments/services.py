@@ -167,7 +167,8 @@ def handle_checkout_completed(session):
 
         raise
 
-    provision_purchase(purchase)
+    from app.tasks.payment_tasks import provision_purchase_task
+    provision_purchase_task.delay(purchase.id)
 
     return purchase, True
 
