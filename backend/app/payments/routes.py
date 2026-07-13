@@ -1,4 +1,5 @@
 import stripe
+import logging
 
 from flask import (
     Blueprint,
@@ -22,7 +23,7 @@ payments_bp = Blueprint(
     __name__,
 )
 
-
+logger  = logging.getLogger (__name__)
 @payments_bp.route(
     "/health",
     methods=["GET"],
@@ -51,11 +52,15 @@ def checkout():
     user_id = get_jwt_identity()
 
     try:
-        checkout_session = (
-            create_checkout_session(
+        checkout_session = create_checkout_session(
                 user_id=user_id,
                 tier=tier,
-            )
+        )
+        logger.info(
+            "Checkout session created for user %s (tier=%s, session_id=%s)",
+            user_id,
+            tier,
+            checkout_session.id,
         )
 
         return {
@@ -69,10 +74,13 @@ def checkout():
         }, 400
 
     except stripe.StripeError:
+        logger.exception(
+            "Stripe checkout session creation failed for user %s",
+            user_id,
+        )
+
         return {
-            "error": (
-                "Unable to create checkout session"
-            )
+            "error": "Unable to create checkout session"
         }, 502
 
 @payments_bp.route(
@@ -117,6 +125,11 @@ def claim():
         return {
             "error": error
         }, 409
+    logger.info(
+        "Purchase %s successfully claimed by user %s",
+        purchase.id,
+        user_id,
+)
 
     return {
         "message": "Purchase found",
@@ -153,6 +166,10 @@ def stripe_webhook():
             sig_header=signature,
             secret=webhook_secret,
         )
+        logger.info(
+            "Received Stripe webhook: %s",
+            event["type"],
+    )
 
     except ValueError:
         return {
@@ -178,21 +195,21 @@ def stripe_webhook():
             )
 
             if created:
-                print(
-                    "Purchase created:",
-                    purchase.id
+                logger.info(
+                    "Purchase created successfully: %s",
+                    purchase.id,
                 )
 
             else:
-                print(
-                    "Purchase already processed:",
-                    purchase.id
+                logger.warning(
+                    "Duplicate webhook ignored for purchase %s",
+                    purchase.id,
                 )
 
     except ValueError as error:
-        print(
-            "Webhook processing error:",
-            str(error)
+        logger.warning(
+            "Webhook validation failed: %s",
+            str(error),
         )
 
         return {
@@ -200,7 +217,7 @@ def stripe_webhook():
         }, 400
 
     except Exception as error:
-        current_app.logger.exception(
+        logger.exception(
             "Unexpected webhook processing error"
         )
 

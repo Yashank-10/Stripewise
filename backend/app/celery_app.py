@@ -16,7 +16,15 @@ def make_celery(app):
 
     celery.Task = ContextTask
 
+    # Explicitly import task modules
+    celery.conf.imports = (
+        "app.tasks.payment_tasks",
+    )
+
     return celery
 
 
 celery = make_celery(flask_app)
+
+# Force task registration
+import app.tasks.payment_tasks

@@ -7,12 +7,15 @@ from app.products.routes import products_bp
 from app.auth.routes import auth_bp
 
 from  app.payments.routes import payments_bp
+from app.logging_config import configure_logging
 
 def create_app():
     app = Flask(__name__)
 
     app.config.from_object(Config)
 
+    configure_logging()
+    
     CORS(app)
 
     db.init_app(app)

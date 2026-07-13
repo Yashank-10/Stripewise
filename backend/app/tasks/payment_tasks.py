@@ -3,6 +3,9 @@ from app.celery_app import celery
 from app.models.purchase import Purchase
 from app.payments.provisioning import provision_purchase
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 @celery.task(bind=True, max_retries=3)
 def provision_purchase_task(self, purchase_id):
@@ -16,10 +19,11 @@ def provision_purchase_task(self, purchase_id):
 
     entitlement, created = provision_purchase(purchase)
 
-    print("=" * 60)
-    print(f"Provisioned Purchase: {purchase.id}")
-    print(f"Created New Entitlement: {created}")
-    print("=" * 60)
+    logger.info(
+    "Provisioned purchase %s successfully (created=%s)",
+    purchase.id,
+    created,
+)
 
     return {
         "purchase_id": purchase.id,
