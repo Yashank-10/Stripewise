@@ -28,3 +28,4 @@ celery = make_celery(flask_app)
 
 # Force task registration
 import app.tasks.payment_tasks
+import app.tasks.email_tasks
