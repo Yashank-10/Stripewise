@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request
 from app.extensions import db
 from app.models.user import User
@@ -11,15 +12,13 @@ from app.auth.services import (
     authenticate_user,
     register_user,
 )
-from app.models.user import User
-
 
 auth_bp = Blueprint(
     "auth",
     __name__
 )
 
-
+logger = logging.getLogger(__name__)
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json() or {}
@@ -29,11 +28,18 @@ def register():
     name = data.get("name")
 
     if not email or not password:
+        logger.warning(
+            "Registration failed: email or password missing"
+        )
         return {
             "error": "Email and password are required"
         }, 400
 
     if len(password) < 8:
+        logger.warning(
+            "Registration failed: password too short for email %s",
+            email,
+        )
         return {
             "error": "Password must be at least 8 characters"
         }, 400
@@ -45,12 +51,22 @@ def register():
     )
 
     if error:
+        logger.warning(
+            "Registration failed for email %s: %s",
+            email,
+            error,
+        )
         return {
             "error": error
         }, 409
 
     access_token = create_access_token(
         identity=user.id
+    )
+    logger.info(
+        "User registered successfully (id=%s, email=%s)",
+        user.id,
+        user.email,
     )
 
     return {
@@ -70,6 +86,9 @@ def login():
     password = data.get("password")
 
     if not email or not password:
+        logger.warning(
+            "Login failed: email or password missing"
+        )
         return {
             "error": "Email and password are required"
         }, 400
@@ -80,12 +99,20 @@ def login():
     )
 
     if not user:
+        logger.warning(
+            "Invalid login attempt for email %s",
+            email,
+        )
         return {
             "error": "Invalid email or password"
         }, 401
 
     access_token = create_access_token(
         identity=user.id
+    )
+    logger.info(
+        "User logged in successfully (id=%s)",
+        user.id,
     )
 
     return {
@@ -109,10 +136,17 @@ def get_current_user():
     )
 
     if not user:
+        logger.warning(
+            "Authenticated user %s not found",
+            user_id,
+        )
         return {
             "error": "User not found"
         }, 404
-
+    logger.info(
+        "User profile retrieved (id=%s)",
+        user.id
+    )
     return {
         "user": {
             "id": user.id,
