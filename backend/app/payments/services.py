@@ -8,14 +8,15 @@ from app.models.purchase import Purchase
 from app.models.user import User
 from app.payments.constants import TIER_LOOKUP_KEYS
 from app.payments.provisioning import provision_purchase
-from app.tasks.payment_tasks import provision_purchase_task
 
 logger = logging.getLogger(__name__)
 
 def initialize_stripe():
     stripe.api_key = current_app.config[
-        logger.debug("Stripe SDK initialized.")
+        "STRIPE_SECRET_KEY"
     ]
+
+    logger.debug("Stripe SDK initialized.")
 
 
 def get_price_by_lookup_key(lookup_key):
@@ -30,13 +31,22 @@ def get_price_by_lookup_key(lookup_key):
         active=True,
         limit=1,
     )
+    logger.info(
+        "Stripe returned %d prices for lookup key '%s'",
+        len(prices.data),
+        lookup_key,
+    )
+    logger.info(
+        "Lookup key being searched: %s",
+        lookup_key,
+    )
 
     if not prices.data:
         logger.warning(
             "Stripe price not found for lookup key '%s'",
             lookup_key,
-    )
-    return None
+        )
+        return None
 
     return prices.data[0]
 
@@ -100,11 +110,12 @@ def create_checkout_session(user_id, tier):
 
 
 def handle_checkout_completed(session):
+    checkout_session_id = session["id"]
+
     logger.info(
         "Processing completed checkout session %s",
         checkout_session_id,
-    )
-    checkout_session_id = session["id"]
+    ) 
 
     existing_purchase = Purchase.query.filter_by(
         checkout_session_id=checkout_session_id
@@ -229,6 +240,7 @@ def handle_checkout_completed(session):
             return existing_purchase, False
 
         raise
+    from app.tasks.payment_tasks import provision_purchase_task
 
     logger.info(
         "Queueing provisioning task for purchase %s",
