@@ -209,13 +209,12 @@ def handle_checkout_completed(session):
     )
 
     db.session.add(purchase)
-    logger.info(
-        "Purchase %s committed successfully",
-        purchase.id,
-    )
-
     try:
         db.session.commit()
+        logger.info(
+            "Purchase %s committed successfully",
+            purchase.id,
+        )
 
     except IntegrityError:
         logger.warning(
@@ -241,13 +240,19 @@ def handle_checkout_completed(session):
 
         raise
     from app.tasks.payment_tasks import provision_purchase_task
-
+    from app.tasks.email_tasks import send_purchase_confirmation_task
     logger.info(
         "Queueing provisioning task for purchase %s",
         purchase.id,
     )
     provision_purchase_task.delay(purchase.id)
-
+    logger.info(
+        "Queueing purchase confirmation email for purchase %s",
+        purchase.id,
+    )
+    send_purchase_confirmation_task.delay(
+        purchase.id
+    )
     return purchase, True
 
 def claim_purchase(user_id, checkout_session_id):
