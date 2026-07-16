@@ -21,6 +21,71 @@ auth_bp = Blueprint(
 logger = logging.getLogger(__name__)
 @auth_bp.route("/register", methods=["POST"])
 def register():
+    """
+    Register a New User
+    ---
+    tags:
+      - Authentication
+
+    summary: Register a new user.
+
+    description: |
+      Creates a new user account and returns
+      a JWT access token upon successful registration.
+
+    consumes:
+      - application/json
+
+    produces:
+      - application/json
+
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+          type: object
+          required:
+            - email
+            - password
+          properties:
+            name:
+              type: string
+              example: Yashank Saluja
+            email:
+              type: string
+              example: yashank@example.com
+            password:
+              type: string
+              example: StrongPassword123
+
+    responses:
+      201:
+        description: User registered successfully.
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: User registered successfully
+            access_token:
+              type: string
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                name:
+                  type: string
+
+      400:
+        description: Invalid request.
+
+      409:
+        description: Email already exists.
+    """
     data = request.get_json() or {}
 
     email = data.get("email")
@@ -80,6 +145,50 @@ def register():
     }, 201
 @auth_bp.route("/login", methods=["POST"])
 def login():
+    """
+    User Login
+    ---
+    tags:
+        - Authentication
+
+    summary: Authenticate an existing user.
+
+    description: |
+        Validates user credentials and returns
+        a JWT access token.
+
+    consumes:
+        - application/json
+
+    produces:
+        - application/json
+
+    parameters:
+      - in: body
+        name: body
+        required: true
+        schema:
+            type: object
+            required:
+                - email
+                - password
+            properties:
+                email:
+                    type: string
+                    example: yashank@example.com
+                password:
+                    type: string
+                    example: StrongPassword123
+
+    responses:
+        200:
+            description: Login successful.
+        401:
+            description: Invalid email or password.
+
+        400:
+            description: Missing credentials.
+    """
     data = request.get_json() or {}
 
     email = data.get("email")
@@ -128,6 +237,51 @@ def login():
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
 def get_current_user():
+    """
+    Get Current User
+    ---
+    tags:
+      - Authentication
+
+    summary: Get the currently authenticated user.
+
+    description: |
+      Returns the profile of the authenticated user.
+      This endpoint requires a valid JWT access token.
+
+    produces:
+      - application/json
+
+    security:
+      - Bearer: []
+
+    responses:
+      200:
+        description: User details retrieved successfully.
+        schema:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                email:
+                  type: string
+                name:
+                  type: string
+                github_username:
+                  type: string
+                email_verified:
+                  type: boolean
+
+      401:
+        description: Unauthorized (invalid or missing JWT token)
+
+      404:
+        description: User not found.
+    """
+
     user_id = get_jwt_identity()
 
     user = db.session.get(
@@ -136,17 +290,10 @@ def get_current_user():
     )
 
     if not user:
-        logger.warning(
-            "Authenticated user %s not found",
-            user_id,
-        )
         return {
             "error": "User not found"
         }, 404
-    logger.info(
-        "User profile retrieved (id=%s)",
-        user.id
-    )
+
     return {
         "user": {
             "id": user.id,

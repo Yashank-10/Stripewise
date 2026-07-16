@@ -29,6 +29,32 @@ logger  = logging.getLogger (__name__)
     methods=["GET"],
 )
 def health():
+    """
+    Payments Health Check
+    ---
+    tags:
+      - Payments
+
+    summary: Check if the payments module is running.
+
+    description: |
+      Returns a simple message confirming that
+      the Payments module is active.
+
+    produces:
+      - application/json
+
+    responses:
+      200:
+        description: Payments module is healthy.
+        schema:
+          type: object
+          properties:
+            message:
+              type: string
+              example: Payments module is working
+    """
+
     return {
         "message": "Payments module is working"
     }, 200
@@ -40,6 +66,56 @@ def health():
 )
 @jwt_required()
 def checkout():
+    """
+Create Checkout Session
+---
+tags:
+  - Payments
+
+summary: Create a Stripe Checkout Session.
+
+description: |
+  Creates a Stripe Checkout Session for
+  the selected subscription tier.
+
+security:
+  - Bearer: []
+
+consumes:
+  - application/json
+
+produces:
+  - application/json
+
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      required:
+        - tier
+      properties:
+        tier:
+          type: string
+          enum:
+            - starter
+            - pro
+          example: pro
+
+responses:
+  200:
+    description: Checkout session created.
+
+  400:
+    description: Invalid tier.
+
+  401:
+    description: Unauthorized.
+
+  502:
+    description: Stripe API error.
+"""
     data = request.get_json() or {}
 
     tier = data.get("tier")
@@ -89,6 +165,80 @@ def checkout():
 )
 @jwt_required()
 def claim():
+    """
+Claim Purchase
+---
+tags:
+  - Payments
+
+summary: Claim a completed purchase.
+
+description: |
+  Claims a completed Stripe purchase using the
+  Checkout Session ID.
+
+security:
+  - Bearer: []
+
+consumes:
+  - application/json
+
+produces:
+  - application/json
+
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      required:
+        - session_id
+      properties:
+        session_id:
+          type: string
+          example: cs_test_a1B2C3D4E5F6
+
+responses:
+  200:
+    description: Purchase successfully claimed.
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Purchase found
+        purchase:
+          type: object
+          properties:
+            id:
+              type: string
+            tier:
+              type: string
+            amount:
+              type: integer
+            currency:
+              type: string
+            status:
+              type: string
+            access_status:
+              type: string
+
+  400:
+    description: Invalid request.
+
+  401:
+    description: Unauthorized.
+
+  403:
+    description: Purchase does not belong to the authenticated user.
+
+  404:
+    description: Purchase not found.
+
+  409:
+    description: Purchase cannot be claimed.
+"""
     data = request.get_json() or {}
 
     checkout_session_id = data.get(
@@ -150,6 +300,38 @@ def claim():
     methods=["POST"],
 )
 def stripe_webhook():
+    """
+Stripe Webhook
+---
+tags:
+  - Internal
+
+summary: Receive Stripe webhook events.
+
+description: |
+  Internal endpoint used exclusively by Stripe.
+
+  Stripe sends signed webhook events whenever
+  a payment is completed or updated.
+
+  This endpoint verifies the Stripe signature,
+  processes checkout completion, creates
+  purchases, provisions entitlements and
+  queues background email tasks.
+
+produces:
+  - application/json
+
+responses:
+  200:
+    description: Webhook processed successfully.
+
+  400:
+    description: Invalid payload or signature.
+
+  500:
+    description: Internal processing error.
+"""
     payload = request.get_data()
 
     signature = request.headers.get(
