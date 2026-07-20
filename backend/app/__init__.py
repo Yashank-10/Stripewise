@@ -5,7 +5,7 @@ from app.config import Config
 from app.extensions import db, migrate, jwt
 from app.products.routes import products_bp
 from app.auth.routes import auth_bp
-from app.errors.handlers import register_error_handlers
+from app.core.handlers import register_error_handlers
 
 from  app.payments.routes import payments_bp
 from app.logging_config import configure_logging

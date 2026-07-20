@@ -44,6 +44,9 @@ def get_all_products():
 
     products = get_all_products()
 
-    return {
-        "products": products
-    }, 200
+    return success_response(
+      message="Products fetched successfully.",
+      data={
+          "products": products
+    }
+)
