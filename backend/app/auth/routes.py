@@ -2,6 +2,7 @@ import logging
 from flask import Blueprint, request
 from app.extensions import db
 from app.models.user import User
+from app.core.responses import success_response
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -223,16 +224,19 @@ def login():
         "User logged in successfully (id=%s)",
         user.id,
     )
+    user_data = {
+        "id": str(user.id),
+        "email": user.email,
+        "name": user.name,
+    }
 
-    return {
-        "message": "Login successful",
-        "access_token": access_token,
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
+    return success_response(
+        message="Login successful.",
+        data={
+            "access_token": access_token,
+            "user": user_data
         }
-    }, 200
+    )
 
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()

@@ -1,7 +1,7 @@
-from flask import jsonify
-import logging
-
+from app.core.responses import error_response
 from app.core.exceptions import AppException
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -13,20 +13,18 @@ def register_error_handlers(app):
 
         logger.warning(error.message)
 
-        return jsonify({
-            "success": False,
-            "error": error.message
-        }), error.status_code
+        return error_response(
+            message=error.message,
+            status_code=error.status_code,
+        )
 
 
     @app.errorhandler(Exception)
     def handle_unexpected_exception(error):
 
-        logger.exception(
-            "Unhandled application exception"
-        )
+        logger.exception("Unhandled exception")
 
-        return jsonify({
-            "success": False,
-            "error": "Internal Server Error"
-        }), 500
+        return error_response(
+            message="Internal Server Error",
+            status_code=500,
+        )

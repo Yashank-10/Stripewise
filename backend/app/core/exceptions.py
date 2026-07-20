@@ -1,8 +1,4 @@
 class AppException(Exception):
-    """
-    Base application exception.
-    """
-
     status_code = 500
 
     def __init__(self, message):
