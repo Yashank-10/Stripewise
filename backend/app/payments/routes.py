@@ -10,7 +10,7 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
-
+from app.core.responses import success_response
 from app.payments.services import (
     claim_purchase,
     create_checkout_session,
@@ -139,10 +139,13 @@ responses:
             checkout_session.id,
         )
 
-        return {
-            "checkout_url": checkout_session.url,
-            "session_id": checkout_session.id,
-        }, 200
+        return success_response(
+            message="Checkout session created successfully.",
+            data={
+                "checkout_url": checkout_session.url,
+                "session_id": checkout_session.id,
+            }
+        )
 
     except ValueError as error:
         return {

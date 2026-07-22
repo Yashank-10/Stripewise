@@ -1,8 +1,9 @@
 import logging
+from app.auth.serializers import serialize_user
 from flask import Blueprint, request
 from app.extensions import db
 from app.models.user import User
-from app.core.responses import success_response
+from app.core.responses import success_response, error_response
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -97,18 +98,14 @@ def register():
         logger.warning(
             "Registration failed: email or password missing"
         )
-        return {
-            "error": "Email and password are required"
-        }, 400
+        return error_response("Email and password are required"), 400
 
     if len(password) < 8:
         logger.warning(
             "Registration failed: password too short for email %s",
             email,
         )
-        return {
-            "error": "Password must be at least 8 characters"
-        }, 400
+        return error_response("Password must be at least 8 characters"), 400
 
     user, error = register_user(
         email=email,
@@ -122,9 +119,7 @@ def register():
             email,
             error,
         )
-        return {
-            "error": error
-        }, 409
+        return error_response(error), 409
 
     access_token = create_access_token(
         identity=user.id
@@ -135,15 +130,12 @@ def register():
         user.email,
     )
 
-    return {
-        "message": "User registered successfully",
-        "access_token": access_token,
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
+    return success_response(
+        message="User registered successfully",
+        data={
+            "user": serialize_user(user)
         }
-    }, 201
+    ), 201
 @auth_bp.route("/login", methods=["POST"])
 def login():
     """
@@ -234,9 +226,9 @@ def login():
         message="Login successful.",
         data={
             "access_token": access_token,
-            "user": user_data
+            "user": serialize_user(user),
         }
-    )
+    ) 
 
 @auth_bp.route("/me", methods=["GET"])
 @jwt_required()
@@ -298,12 +290,9 @@ def get_current_user():
             "error": "User not found"
         }, 404
 
-    return {
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "name": user.name,
-            "github_username": user.github_username,
-            "email_verified": user.email_verified,
+    return success_response(
+        message="User profile fetched successfully.",
+        data={
+            "user": serialize_user(user),
         }
-    }, 200
+    )
